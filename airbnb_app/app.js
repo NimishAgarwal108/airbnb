@@ -7,6 +7,8 @@ const express = require('express');
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
 const mongoose = require('mongoose');
+const path = require("path");
+app.set("views", path.join(__dirname, "views")); // <-- absolute path
 
 // Environment variables
 const DB_PATH =
