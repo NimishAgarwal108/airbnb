@@ -5,7 +5,8 @@ const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
-const DB_PATH = "mongodb+srv://root:root@nimish.gykg7ui.mongodb.net/nimish?retryWrites=true&w=majority&appName=nimish";
+const DB_PATH = process.env.MONGODB_URI || "mongodb+srv://root:root@nimish.gykg7ui.mongodb.net/nimish?retryWrites=true&w=majority&appName=nimish";
+const SESSION_SECRET = process.env.SESSION_SECRET || "agarwal";
 
 //Local Module
 const storeRouter = require("./routes/storeRouter")
@@ -27,7 +28,7 @@ const store = new MongoDBStore({
 
 app.use(express.urlencoded({ extended: false }));
 app.use(session({
-  secret: "agarwal",
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   store
@@ -53,7 +54,7 @@ app.use(express.static(path.join(rootDir, 'public')))
 
 app.use(errorsController.pageNotFound);
 
-const PORT = 3003;
+const PORT = process.env.PORT ||3003;
 
 mongoose.connect(DB_PATH).then(() => {
   console.log('Connected to Mongo');
@@ -63,3 +64,5 @@ mongoose.connect(DB_PATH).then(() => {
 }).catch(err => {
   console.log('Error while connecting to Mongo: ', err);
 });
+
+module.exports = app;
