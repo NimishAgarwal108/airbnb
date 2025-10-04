@@ -9,9 +9,6 @@ async function connectToDB(uri) {
 
   if (!cached.promise) {
     cached.promise = mongoose.connect(uri, {
-      bufferCommands: false,
-      useNewUrlParser: true,
-      useUnifiedTopology: true
     }).then(m => m);
   }
 

@@ -27,8 +27,10 @@ const SESSION_SECRET = process.env.SESSION_SECRET || "agarwal";
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views")); // absolute path for serverless
 
+
+
 // Static files
-app.use(express.static(path.join(rootDir, "public")));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: false }));
 
 // MongoDB session store
