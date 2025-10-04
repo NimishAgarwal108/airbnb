@@ -152,12 +152,21 @@ exports.postLogin = async (req, res, next) => {
     });
   }
 
+  // Set session
   req.session.isLoggedIn = true;
   req.session.user = user;
   await req.session.save();
 
-  res.redirect("/");
+  // Redirect based on user type
+  if (user.userType === "host") {
+    return res.redirect("/host/host-home"); // host home page
+  } else if (user.userType === "guest") {
+    return res.redirect("/homes"); // guest home page
+  } else {
+     return res.redirect("/login"); // fallback
+  }
 };
+
 
 exports.postLogout = (req, res, next) => {
   req.session.destroy(() => {
