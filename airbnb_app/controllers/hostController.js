@@ -1,103 +1,112 @@
-const Home=require("../models/home");
-const registeredHomes = [];
+const Home = require("../models/home");
+const connectToDB = require("../utils/db");
 
-  exports.getAddHome=(req, res, next) => {
-    res.render('host/edit-home', 
-      {pageTitle: 'Add Home to airbnb',
-        currentPage:'add-home',
-      editing: false,
-    isLoggedIn:req.session.isLoggedIn,
-    user:req.session.user
+// Render add home form
+exports.getAddHome = (req, res, next) => {
+  res.render("host/edit-home", {
+    pageTitle: "Add Home",
+    currentPage: "add-home",
+    editing: false,
+    isLoggedIn: req.session.isLoggedIn,
+    user: req.session.user,
   });
-  }
-
-exports.getHomes=(req, res, next) => {
-  const registeredHomes=Home.find().then(registeredHomes=> res.render('store/home-list', {registeredHomes: registeredHomes, pageTitle: 'airbnb Home',currentPage: 'Home',user:req.session.user}));
-  console.log(registeredHomes);
-}
-
-
-exports.postAddHome = (req, res, next) => {
-  const{houseName,price,location,rating,photoUrl}=req.body;
-  const home = new Home({
-    houseName,
-    price,
-    location,
-    rating,
-    photoUrl});
-  home.save().then(()=>{
-    console.log('home saved successfully');
-  });
-  res.redirect('/host/host-home');
 };
 
-exports.getHostHome=(req, res, next) => {
-  const registeredHomes=Home.find().then(registeredHomes=> res.render('host/host-home',
-     {registeredHomes: registeredHomes,
-     pageTitle: 'Host Home List',
-     currentPage: 'host-home',
-     user:req.session.user,
-    isLoggedIn:req.session.isLoggedIn}));
-  console.log(registeredHomes);
-}
-
-exports.getEditHome=(req, res, next) => {
-  const homeId=req.params.homeId;
-  const editing=req.query.editing==='true';
-
-  Home.findById(homeId).then(home=>{
-  if(!home){
-    console.log("home not found for edting");
-    return res.redirect("/host/host-home");
-  }
-  else
-  {
-    console.log(homeId,editing,home);
-    res.render('host/edit-home', 
-    { home:home,
-      pageTitle: 'edit your home',
-      currentPage:'host-home',
-      editing:editing,
-      user:req.session.user,
-    isLoggedIn:req.session.isLoggedIn});
-  }
-  });
-}
-
-exports.postEditHome = (req, res, next) => {
-  const{id,houseName,price,location,rating,photoUrl}=req.body;
-  Home.findById(id).then((home)=>{
-    home.houseName=houseName;
-    home.price=price;
-    home.location=location;
-    home.rating=rating;
-    home.photoUrl=photoUrl;
-    home.save().then((result)=>{
-      console.log("home updated",result);
-    }).catch(err=>{
-      console.log("error while updating",err);  
-    })
-    res.redirect('/host/host-home');
-  }).catch(err=>{
-      console.log("error while finding home",err);  
+// Render host's home list
+exports.getHostHome = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const registeredHomes = await Home.find({ user: req.session.user._id }); // only show homes added by this host
+    res.render("host/host-home", {
+      registeredHomes,
+      pageTitle: "Host Home List",
+      currentPage: "host-home",
+      isLoggedIn: req.session.isLoggedIn,
+      user: req.session.user,
     });
+  } catch (err) {
+    console.error("Error loading host homes:", err);
+    res.status(500).send("Internal Server Error");
+  }
 };
 
-
-exports.postDeleteHome = (req, res, next) => {
-  const homeId = req.params.homeId;
-
-  Home.findByIdAndDelete(homeId)
-    .then(result => {
-      console.log("Home deleted successfully");
-      res.redirect('/host/host-home');
-    })
-    .catch(err => {
-      console.error('Error deleting home:', err);
-      res.redirect('/host/host-home');
+// Add a new home
+exports.postAddHome = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const { houseName, price, location, rating, photoUrl } = req.body;
+    const home = new Home({
+      houseName,
+      price,
+      location,
+      rating,
+      photoUrl,
+      user: req.session.user._id, // link home to host
     });
+    await home.save();
+    res.redirect("/host/host-home");
+  } catch (err) {
+    console.error("Error adding home:", err);
+    res.status(500).send("Internal Server Error");
+  }
 };
 
+// Edit home page
+exports.getEditHome = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const homeId = req.params.homeId;
+    const editing = req.query.editing === "true";
 
-exports.registeredHomes = registeredHomes;
+    const home = await Home.findById(homeId);
+    if (!home) return res.redirect("/host/host-home");
 
+    res.render("host/edit-home", {
+      home,
+      pageTitle: "Edit Home",
+      currentPage: "host-home",
+      editing,
+      isLoggedIn: req.session.isLoggedIn,
+      user: req.session.user,
+    });
+  } catch (err) {
+    console.error("Error fetching home for edit:", err);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Update home
+exports.postEditHome = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const { id, houseName, price, location, rating, photoUrl } = req.body;
+    const home = await Home.findById(id);
+
+    if (!home) return res.redirect("/host/host-home");
+
+    home.houseName = houseName;
+    home.price = price;
+    home.location = location;
+    home.rating = rating;
+    home.photoUrl = photoUrl;
+    await home.save();
+
+    res.redirect("/host/host-home");
+  } catch (err) {
+    console.error("Error updating home:", err);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Delete home
+exports.postDeleteHome = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const homeId = req.params.homeId;
+    await Home.findByIdAndDelete(homeId);
+    res.redirect("/host/host-home");
+  } catch (err) {
+    console.error("Error deleting home:", err);
+    res.status(500).send("Internal Server Error");
+  }
+};

@@ -6,31 +6,27 @@ require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
-const mongoose = require("mongoose");
 
 // Local Modules
 const storeRouter = require("./routes/storeRouter");
 const hostRouter = require("./routes/hostRouter");
 const authRouter = require("./routes/authRouter");
 const errorsController = require("./controllers/errors");
+const connectToDB = require("./utils/db"); // your db.js
 const rootDir = require("./utils/pathUtil");
 
 const app = express();
 
 // Environment variables
-const DB_PATH =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://root:root@nimish.gykg7ui.mongodb.net/nimish?retryWrites=true&w=majority&appName=nimish";
+const DB_PATH = process.env.MONGODB_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET || "agarwal";
 
 // View engine setup
 app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views")); // absolute path for serverless
-
-
+app.set("views", path.join(__dirname, "views"));
 
 // Static files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: false }));
 
 // MongoDB session store
@@ -74,8 +70,7 @@ app.use(errorsController.pageNotFound);
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3003;
 
-  mongoose
-    .connect(DB_PATH)
+  connectToDB(DB_PATH)
     .then(() => {
       console.log("Connected to Mongo");
       app.listen(PORT, () =>
@@ -90,14 +85,7 @@ if (process.env.NODE_ENV !== "production") {
 // =====================
 module.exports = async (req, res) => {
   try {
-    // Connect to DB only if not already connected
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(DB_PATH, {
-        bufferCommands: false,
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-    }
+    await connectToDB(DB_PATH); // ✅ ensure DB is connected
     app(req, res);
   } catch (err) {
     console.error("DB connection error:", err);

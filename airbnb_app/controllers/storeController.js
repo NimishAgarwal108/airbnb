@@ -1,101 +1,119 @@
-const favourite = require("../models/favourite");
-const Home=require("../models/home");
-const registeredHomes = [];
+const Favourite = require("../models/favourite");
+const Home = require("../models/home");
+const connectToDB = require("../utils/db");
 
+// Render index page (first page for guests)
+exports.getIndex = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const registeredHomes = await Home.find();
+    res.render("store/index", {
+      registeredHomes,
+      pageTitle: "Homes List",
+      currentPage: "airbnb",
+      isLoggedIn: req.session.isLoggedIn,
+      user: req.session.user,
+    });
+  } catch (err) {
+    console.error("Error loading index page:", err);
+    res.status(500).send("Internal Server Error");
+  }
+};
 
+// List all homes
+exports.getHomes = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const registeredHomes = await Home.find();
+    res.render("store/home-list", {
+      registeredHomes,
+      pageTitle: "Airbnb Home",
+      currentPage: "Home",
+      isLoggedIn: req.session.isLoggedIn,
+      user: req.session.user,
+    });
+  } catch (err) {
+    console.error("Error fetching homes:", err);
+    res.status(500).send("Internal Server Error");
+  }
+};
 
-exports.getHomes=(req, res, next) => {
-  const registeredHomes=Home.find().then(registeredHomes=> res.render('store/home-list', {registeredHomes: registeredHomes, pageTitle: 'airbnb Home',currentPage: 'Home',isLoggedIn:req.session.isLoggedIn,user:req.session.user}));
-  console.log(registeredHomes);
-}
-
-exports.getIndex=(req, res, next) => {
-  console.log('session value:',req.session);
-  const registeredHomes=Home.find().then(registeredHomes=> res.render('store/index',
-     {registeredHomes: registeredHomes,
-     pageTitle: 'Homes List',
-     currentPage: 'airbnb',
+// Bookings page
+exports.getBookings = (req, res, next) => {
+  res.render("store/bookings", {
+    pageTitle: "My Bookings",
+    currentPage: "bookings",
     isLoggedIn: req.session.isLoggedIn,
-    user:req.session.user
-}));
-  console.log(registeredHomes);
-}
-
-
-exports.getBookings=(req, res, next) => { res.render('store/bookings', {registeredHomes: registeredHomes, 
-  pageTitle: 'my bookings',
-  currentPage: 'bookings',
-isLoggedIn:req.session.isLoggedIn,
-user:req.session.user});
-}
-
-exports.getFavouriteList=(req, res, next) => {
-  favourite.find()
-  .populate("homeId")
-  .then(favourites=>{ 
-    const favouriteHomes=favourites.map((favourite)=>favourite.homeId);
-    res.render('store/favourite-list',
-     {favouriteHomes: favouriteHomes,
-     pageTitle: 'my favourites',
-     currentPage: 'favourites',
-     isLoggedIn:req.session.isLoggedIn,
-     user:req.session.user
-    });
+    user: req.session.user,
   });
 };
 
-exports.getHomeDetails=(req, res, next) => {
-   const homeId=req.params.homeId;
-    Home.findById(homeId).then(home=>{
-  if(!home){
-    res.redirect("/homes");
-  }
-  else{
-    res.render('store/home-detail',
-     {
-      home:home,
-      pageTitle: 'home detail',
-      currentPage: 'Home',
-      isLoggedIn:req.session.isLoggedIn,
-      user:req.session.user
+// Favourites list
+exports.getFavouriteList = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const favourites = await Favourite.find().populate("homeId");
+    const favouriteHomes = favourites.map(fav => fav.homeId);
+    res.render("store/favourite-list", {
+      favouriteHomes,
+      pageTitle: "My Favourites",
+      currentPage: "favourites",
+      isLoggedIn: req.session.isLoggedIn,
+      user: req.session.user,
     });
+  } catch (err) {
+    console.error("Error fetching favourites:", err);
+    res.status(500).send("Internal Server Error");
   }
-  })
+};
 
-}
+// Home details page
+exports.getHomeDetails = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const homeId = req.params.homeId;
+    const home = await Home.findById(homeId);
+    if (!home) return res.redirect("/homes");
 
-exports.postAddToFavourites=(req,res,next)=>{
-  const homeId=req.body.id;
-  favourite.findOne({homeId:homeId})
-  .then(
-    existingFav=>{
-      if(existingFav){
-        return  res.redirect("/store/favourite-list");
-      }
-      const fav=new favourite({homeId:homeId});
-      return fav.save();
+    res.render("store/home-detail", {
+      home,
+      pageTitle: "Home Detail",
+      currentPage: "Home",
+      isLoggedIn: req.session.isLoggedIn,
+      user: req.session.user,
+    });
+  } catch (err) {
+    console.error("Error fetching home details:", err);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Add to favourites
+exports.postAddToFavourites = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const homeId = req.body.id;
+    const existingFav = await Favourite.findOne({ homeId });
+    if (!existingFav) {
+      const fav = new Favourite({ homeId });
+      await fav.save();
     }
-  )
-  .then(()=>{
     res.redirect("/store/favourite-list");
-  })
-  .catch(err=>{
-    console.log('error while adding to favourites',err);
-
-  })
+  } catch (err) {
+    console.error("Error adding to favourites:", err);
+    res.status(500).send("Internal Server Error");
+  }
 };
 
-
-exports.postDeleteFavourite = (req, res, next) => {
-  const homeId=req.params.homeId;
-   favourite.findOneAndDelete({homeId:homeId}).then (result=>{
-   console.log('fav removed',result);
-  }).catch(err=>{
-    console.log('error while removing favourite',err);
-  }).finally(()=>{
+// Remove from favourites
+exports.postDeleteFavourite = async (req, res, next) => {
+  try {
+    await connectToDB();
+    const homeId = req.params.homeId;
+    await Favourite.findOneAndDelete({ homeId });
     res.redirect("/store/favourite-list");
-  });
+  } catch (err) {
+    console.error("Error removing favourite:", err);
+    res.status(500).send("Internal Server Error");
+  }
 };
-
-
-exports.registeredHomes = registeredHomes;
