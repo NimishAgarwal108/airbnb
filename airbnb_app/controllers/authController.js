@@ -156,7 +156,7 @@ exports.postLogin = async (req, res, next) => {
   req.session.user = user;
   await req.session.save();
 
-  res.redirect("/homes");
+  res.redirect("/");
 };
 
 exports.postLogout = (req, res, next) => {

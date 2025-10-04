@@ -11,9 +11,5 @@
       "src": "/(.*)",
       "dest": "app.js"
     }
-  ],
-  "rewrites": [
-    { "source": "/login", "destination": "/" },
-    { "source": "/signup", "destination": "/" }
   ]
 }

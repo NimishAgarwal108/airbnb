@@ -4,14 +4,14 @@ const hostRouter = express.Router();
 const {getAddHome, postAddHome, getHostHome, getEditHome, postEditHome, postDeleteHome}=require("../controllers/hostController")
 
 
+// hostRouter.js
+hostRouter.get("/homes", getHostHome); // accessible at /host/homes
+hostRouter.get("/add", getAddHome);   // /host/add
+hostRouter.get("/edit/:homeId", getEditHome); // /host/edit/:homeId
+hostRouter.post("/add", postAddHome);
+hostRouter.post("/edit", postEditHome);
+hostRouter.post("/delete/:homeId", postDeleteHome);
 
-hostRouter.get("/add-home",getAddHome);
-hostRouter.get("/host-home",getHostHome);
-hostRouter.get("/edit-home/:homeId",getEditHome);
-hostRouter.post("/add-home",postAddHome);
-hostRouter.post("/edit-home",postEditHome);
-hostRouter.post("/delete-home/:homeId",postDeleteHome);
- 
  
 
 
