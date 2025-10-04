@@ -1,0 +1,133 @@
+<%- include('../partials/head') %>
+</head>
+<body class="bg-gradient-to-r from-red-100 to-red-300 min-h-screen flex flex-col items-center">
+
+  <!-- Navbar Partial -->
+  <%- include('../partials/nav') %>
+
+  <!-- Signup Form -->
+  <main class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 mt-12">
+    
+    <h1 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gray-800">
+      Sign Up to Use Our App
+    </h1>
+
+    <form action="/signup" method="POST" class="space-y-6" novalidate>
+
+      <!-- First Name -->
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">👤</span>
+        <input
+          type="text"
+          name="firstname"
+          value="<%= typeof oldInput !== 'undefined' && oldInput.firstname ? oldInput.firstname : '' %>"
+          placeholder="Enter your first name"
+          class="w-full pl-10 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200"
+        />
+        <%- include('../partials/error', { errors: errors, field: 'firstname' }) %>
+      </div>
+
+      <!-- Last Name -->
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">👤</span>
+        <input
+          type="text"
+          name="lastname"
+          value="<%= typeof oldInput !== 'undefined' && oldInput.lastname ? oldInput.lastname : '' %>"
+          placeholder="Enter your last name"
+          class="w-full pl-10 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200"
+        />
+        <%- include('../partials/error', { errors: errors, field: 'lastname' }) %>
+      </div>
+
+      <!-- Email -->
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">📧</span>
+        <input
+          type="email"
+          name="email"
+          value="<%= typeof oldInput !== 'undefined' && oldInput.email ? oldInput.email : '' %>"
+          placeholder="Enter your email"
+          class="w-full pl-10 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200"
+        />
+        <%- include('../partials/error', { errors: errors, field: 'email' }) %>
+      </div>
+
+      <!-- Password -->
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔒</span>
+        <input
+          type="password"
+          name="password"
+          placeholder="Enter your password"
+          class="w-full pl-10 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200"
+        />
+        <%- include('../partials/error', { errors: errors, field: 'password' }) %>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔒</span>
+        <input
+          type="password"
+          name="confirmPass"
+          placeholder="Confirm password"
+          class="w-full pl-10 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-200"
+        />
+      <%- include('../partials/error', { errors: errors, field: 'confirmPass' }) %>
+      </div>
+
+      <!-- User Type -->
+      <div>
+        <p class="text-gray-700 mb-2 font-medium">User Type:</p>
+        <div class="flex space-x-6">
+          <label class="flex items-center">
+            <input type="radio" name="userType" value="guest" class="mr-2"
+              <%= typeof oldInput !== 'undefined' && oldInput.userType === 'guest' ? 'checked' : '' %> />
+            <span class="text-gray-700">Guest</span>
+          </label>
+          <label class="flex items-center">
+            <input type="radio" name="userType" value="host" class="mr-2"
+              <%= typeof oldInput !== 'undefined' && oldInput.userType === 'host' ? 'checked' : '' %> />
+            <span class="text-gray-700">Host</span>
+          </label>
+        </div>
+          <%- include('../partials/error', { errors: errors, field: 'userType' }) %>
+      </div>
+
+      <!-- Terms & Conditions -->
+     <!-- Terms & Conditions -->
+<div>
+  <label class="flex items-center">
+    <input 
+      type="checkbox" 
+      name="termsAccepted" 
+      value="on" 
+      class="mr-2"
+      <%= typeof oldInput !== 'undefined' && oldInput.termsAccepted ? 'checked' : '' %> 
+    />
+    <span class="text-gray-700 text-sm">I accept all the terms and conditions of the application</span>
+  </label>
+  <%- include('../partials/error', { errors: errors, field: 'termsAccepted' }) %>
+</div>
+
+      <!-- Submit Button -->
+      <div>
+        <input 
+          type="submit" 
+          value="Sign Up" 
+          class="w-full py-3 bg-red-500 text-white font-semibold rounded-lg shadow hover:bg-red-600 transition duration-300 cursor-pointer"
+        />
+      </div>
+
+    </form>
+
+    <!-- Login Link -->
+    <p class="mt-4 text-center text-gray-700 text-sm">
+      Already have an account? 
+      <a href="/login" class="text-red-500 font-medium hover:underline">Login</a>
+    </p>
+
+  </main>
+</body>
+</html>

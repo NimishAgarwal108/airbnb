@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('../partials/head', { pageTitle: pageTitle }) %>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <%- include('../partials/nav', { currentPage: currentPage }) %>
+
+    <!-- Main Content -->
+    <main class="container mx-auto mt-16 px-4 max-w-6xl flex flex-col">
+      
+      <!-- Heading -->
+      <h2 class="text-3xl sm:text-4xl text-red-500 font-extrabold text-center mb-12">
+        Welcome to Airbnb
+      </h2>
+
+      <% if (registeredHomes.length === 0) { %>
+        <p class="text-center text-gray-600 text-lg">No homes have been registered yet.</p>
+      <% } else { %>
+        <div class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 justify-items-center">
+          <% registeredHomes.forEach(home => { %>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transform hover:scale-105 transition duration-300 max-w-[220px] w-full">
+              <img 
+                src="<%= home.photoUrl || 'https://via.placeholder.com/220x150?text=No+Image' %>" 
+                alt="<%= home.houseName %>" 
+                class="w-full h-36 object-cover object-center"
+                loading="lazy"
+              >
+              <div class="p-4">
+                <h3 class="text-lg font-bold text-gray-800 mb-2"><%= home.houseName %></h3>
+                
+                <!-- Location -->
+                <p class="text-gray-600 mb-1 flex items-center gap-1">
+                  <span>📍</span> 
+                  <span><%= home.location %></span>
+                </p>
+                
+                <!-- Price -->
+                <p class="text-gray-600 mb-1 flex items-center gap-1">
+                  <span>💵</span> 
+                  <span>$<%= home.price %> / night</span>
+                </p>
+                
+                <!-- Rating -->
+                <p class="text-yellow-500 mb-3 flex items-center gap-1">
+                  <span>⭐</span>
+                  <span><%= home.rating %> / 5</span>
+                </p>
+                
+                <button class="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition duration-300">
+                  Book
+                </button>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+
+    </main>
+  </body>
+</html>

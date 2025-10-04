@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('../partials/head', { pageTitle: pageTitle }) %>
+  </head>
+  <body class="bg-gradient-to-b from-gray-100 to-gray-200 min-h-screen">
+    <!-- Navbar -->
+    <%- include('../partials/nav', { currentPage: currentPage }) %>
+
+    <main class="container mx-auto mt-12 px-4 max-w-6xl">
+      <!-- Page Heading -->
+      <h2 class="text-3xl md:text-4xl text-red-500 font-extrabold text-center mb-12">
+        Here are your favourites
+      </h2>
+
+      <% if (favouriteHomes.length === 0) { %>
+        <p class="text-center text-gray-600 text-lg">You haven't added any homes to favourites yet.</p>
+      <% } else { %>
+        <div class="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 justify-items-center">
+          <% favouriteHomes.forEach(home => { %>
+            <div class="relative bg-white rounded-xl shadow-md hover:shadow-xl transition duration-300 transform hover:scale-105 max-w-[220px] w-full overflow-hidden">
+              
+              <!-- Image -->
+              <img 
+                src="<%= home.photoUrl || 'https://via.placeholder.com/220x150?text=No+Image' %>" 
+                alt="<%= home.houseName %>" 
+                class="w-full h-36 object-cover object-center"
+                loading="lazy"
+              >
+
+              <!-- Card Content -->
+              <div class="p-4 flex flex-col gap-2">
+                <h3 class="text-lg font-bold text-gray-800 truncate mb-1">🏠 <%= home.houseName %></h3>
+
+                <p class="text-gray-600 text-sm flex items-center gap-1">
+                  📍 <span><%= home.location %></span>
+                </p>
+
+                <p class="text-gray-600 text-sm flex items-center gap-1">
+                  💵 <span>$<%= home.price %> / night</span>
+                </p>
+
+                <!-- Star Rating -->
+                <p class="text-yellow-400 text-sm flex items-center gap-1">
+                  ⭐ <%= home.rating %> / 5
+                </p>
+
+                <!-- Remove Button -->
+                <form action="/store/delete-fav/<%= home._id %>" method="POST">
+                  <button class="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition duration-300 text-center font-semibold">
+                    Remove from favourites
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+<%- include('../partials/head', { pageTitle: pageTitle }) %>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <%- include('../partials/nav', { currentPage: currentPage }) %>
+
+  <main class="max-w-4xl mx-auto mt-12 px-4">
+
+    <!-- Main House Image -->
+    <div class="rounded-xl overflow-hidden shadow-lg">
+      <img 
+        src="<%= home.photoUrl || 'https://via.placeholder.com/800x500?text=No+Image' %>" 
+        alt="<%= home.houseName %>" 
+        class="w-full h-full object-cover"
+      >
+    </div>
+
+    <!-- House Details Card -->
+    <div class="bg-white rounded-xl shadow-lg p-8 mt-6">
+      <h1 class="text-4xl font-extrabold text-gray-800 mb-2"><%= home.houseName %></h1>
+      <p class="text-gray-600 text-lg mb-4"><span class="font-semibold">Location:</span> <%= home.location %></p>
+
+      <div class="flex flex-wrap gap-6 mt-4">
+        <p class="text-gray-700 text-lg"><span class="font-semibold">Price:</span> $<%= home.price %> / night</p>
+        <p class="text-yellow-500 text-lg flex items-center"><span class="font-semibold mr-2">Rating:</span> ⭐ <%= home.rating %> / 5</p>
+      </div>
+
+      <a href="/homes" class="mt-6 inline-block bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition duration-300 font-semibold">
+        Back to Homes
+      </a>
+      <div>
+          <%- include('../partials/favourite') %>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

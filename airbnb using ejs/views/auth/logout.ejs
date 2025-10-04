@@ -1,0 +1,20 @@
+<%- include('../partials/head') %>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+  <main class="container mx-auto mt-8 p-8 bg-white rounded-lg shadow-md max-w-xl">
+    <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">
+       Are u sure you want to logout?
+    </h1>
+
+    <form action="/logout" method="POST">
+      <div>
+        <input 
+          type="submit" 
+        />
+      </div>
+    </form>
+  </main>
+</body>
+</html>
+
