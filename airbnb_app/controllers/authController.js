@@ -159,9 +159,9 @@ exports.postLogin = async (req, res, next) => {
 
   // Redirect based on user type
   if (user.userType === "host") {
-    return res.redirect("/host/host-home"); // host home page
+    return res.redirect("/"); 
   } else if (user.userType === "guest") {
-    return res.redirect("/homes"); // guest home page
+    return res.redirect("/"); // guest home page
   } else {
      return res.redirect("/login"); // fallback
   }
