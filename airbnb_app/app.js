@@ -6,6 +6,8 @@ require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
+const multer = require("multer");
+const fs = require("fs");
 
 // Local Modules
 const storeRouter = require("./routes/storeRouter");
@@ -28,6 +30,54 @@ app.set("views", path.join(__dirname, "views"));
 // Static files
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: false }));
+
+// =====================
+// MULTER CONFIGURATION
+// =====================
+
+// Create uploads directory if it doesn't exist
+const uploadDir = path.join(__dirname, "public", "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log("📁 Created uploads directory");
+}
+
+// Configure storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'home-' + uniqueSuffix + ext);
+  }
+});
+
+// File filter - only JPG, JPEG, PNG
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+
+  if (mimetype && extname) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only JPG, JPEG, and PNG files are allowed!'), false);
+  }
+};
+
+// Multer upload instance
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: { 
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
+// Make upload available globally
+app.locals.upload = upload;
 
 // MongoDB session store
 const store = new MongoDBStore({
@@ -110,6 +160,57 @@ app.use("/host", (req, res, next) => {
 
 app.use("/host", hostRouter);
 
+// 👇 MULTER ERROR HANDLING MIDDLEWARE (MUST BE BEFORE GENERAL ERROR HANDLER)
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('\n=== MULTER ERROR ===');
+    console.error('Error Code:', err.code);
+    console.error('Error Message:', err.message);
+    console.error('Field:', err.field);
+    console.error('==================\n');
+    
+    let errorMessage = 'File upload error: ';
+    switch (err.code) {
+      case 'LIMIT_FILE_SIZE':
+        errorMessage += 'File is too large. Maximum size is 5MB.';
+        break;
+      case 'LIMIT_FILE_COUNT':
+        errorMessage += 'Too many files uploaded.';
+        break;
+      case 'LIMIT_UNEXPECTED_FILE':
+        errorMessage += 'Unexpected file field.';
+        break;
+      default:
+        errorMessage += err.message;
+    }
+    
+    return res.status(400).render('error', {
+      pageTitle: 'Upload Error',
+      currentPage: 'error',
+      error: errorMessage,
+      isLoggedIn: req.session?.isLoggedIn || false,
+      user: req.session?.user || {}
+    });
+  }
+  
+  // If it's a file filter error
+  if (err.message && err.message.includes('Only JPG, JPEG, and PNG')) {
+    console.error('\n=== FILE TYPE ERROR ===');
+    console.error('Error Message:', err.message);
+    console.error('======================\n');
+    
+    return res.status(400).render('error', {
+      pageTitle: 'Upload Error',
+      currentPage: 'error',
+      error: err.message,
+      isLoggedIn: req.session?.isLoggedIn || false,
+      user: req.session?.user || {}
+    });
+  }
+  
+  next(err);
+});
+
 // 👇 ERROR HANDLING MIDDLEWARE (MUST BE BEFORE 404)
 app.use((err, req, res, next) => {
   console.error('\n=== ERROR CAUGHT ===');
@@ -174,6 +275,7 @@ if (process.env.NODE_ENV !== "production") {
       app.listen(PORT, () => {
         console.log(`\n${'='.repeat(50)}`);
         console.log(`🚀 Server running on http://localhost:${PORT}`);
+        console.log(`📁 Uploads directory: ${uploadDir}`);
         console.log(`📱 Test mobile view: Press F12 → Toggle device toolbar`);
         console.log(`${'='.repeat(50)}\n`);
       });

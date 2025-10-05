@@ -9,7 +9,7 @@
       <%= editing ? "Edit" : "Register" %> Your Home on AirBnB
     </h1>
 
-    <form action="/host/<%= editing ? "edit-home/" : "add-home" %>" method="POST" class="space-y-6">
+    <form action="/host/<%= editing ? "edit-home/" : "add-home" %>" method="POST" enctype="multipart/form-data" class="space-y-6">
       <!-- Hidden ID -->
       <input type="hidden" name="id" value="<%= editing ? home._id : '' %>" />
 
@@ -61,17 +61,23 @@
         />
       </div>
 
-      <!-- Photo URL -->
+      <!-- Photo Upload -->
       <div>
-        <label class="block text-gray-700 font-semibold mb-2">🖼️ Photo URL</label>
+        <label class="block text-gray-700 font-semibold mb-2">📷 Upload Photo</label>
         <input
-          type="text"
-          id="photoUrl"
-          name="photoUrl"
-          value="<%= editing ? home.photoUrl : '' %>"
-          placeholder="Enter photo URL"
-          class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
+          type="file"
+          name="photo"
+          accept=".jpg,.jpeg,.png"
+          required
+          class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
         />
+        <p class="text-sm text-gray-500 mt-1">Accepted formats: JPG, JPEG, PNG only</p>
+        <% if (editing && home.photo) { %>
+          <div class="mt-3">
+            <p class="text-sm text-gray-600 mb-2">Current photo:</p>
+            <img src="<%= home.photo %>" alt="Current home photo" class="w-32 h-32 object-cover rounded-lg border-2 border-gray-200">
+          </div>
+        <% } %>
       </div>
 
       <!-- Submit Button -->
@@ -79,7 +85,7 @@
         <input 
           type="submit" 
           value="<%= editing ? "Update Home" : "Submit" %>"
-          class="w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition duration-300 font-semibold shadow-md"
+          class="w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition duration-300 font-semibold shadow-md cursor-pointer"
         />
       </div>
     </form>

@@ -1,4 +1,6 @@
 const Home = require("../models/home");
+const fs = require("fs");
+const path = require("path");
 
 // Render add home form
 exports.getAddHome = (req, res, next) => {
@@ -40,7 +42,7 @@ exports.getHostHome = async (req, res, next) => {
     });
   } catch (err) {
     console.error("Error loading host homes:", err);
-    res.status(500).send("Internal Server Error");
+    next(err);
   }
 };
 
@@ -52,26 +54,39 @@ exports.postAddHome = async (req, res, next) => {
       return res.redirect('/login');
     }
 
-    const { houseName, price, location, rating, photoUrl } = req.body;
+    const { houseName, price, location, rating } = req.body;
+    
+    // Get photo path from uploaded file
+    const photoUrl = `/uploads/${req.file.filename}`;
     
     console.log('Adding home for user:', req.session.user._id);
+    console.log('Uploaded photo:', photoUrl);
     
     const home = new Home({
       houseName,
       price,
       location,
       rating,
-      photoUrl,
+      photo: photoUrl,
       user: req.session.user._id,
     });
     
     await home.save();
-    console.log('Home added successfully:', home._id);
+    console.log('✅ Home added successfully:', home._id);
     
     res.redirect("/host/host-home");
   } catch (err) {
-    console.error("Error adding home:", err);
-    res.status(500).send("Internal Server Error");
+    console.error("❌ Error adding home:", err);
+    
+    // Delete uploaded file if database save fails
+    if (req.file) {
+      const filePath = path.join(__dirname, '..', 'public', 'uploads', req.file.filename);
+      fs.unlink(filePath, (unlinkErr) => {
+        if (unlinkErr) console.error("Error deleting file:", unlinkErr);
+      });
+    }
+    
+    next(err);
   }
 };
 
@@ -103,13 +118,13 @@ exports.getEditHome = async (req, res, next) => {
       home,
       pageTitle: "Edit Home",
       currentPage: "host-home",
-      editing,
+      editing: true,
       isLoggedIn: req.session.isLoggedIn,
       user: req.session.user,
     });
   } catch (err) {
     console.error("Error fetching home for edit:", err);
-    res.status(500).send("Internal Server Error");
+    next(err);
   }
 };
 
@@ -121,7 +136,7 @@ exports.postEditHome = async (req, res, next) => {
       return res.redirect('/login');
     }
 
-    const { id, houseName, price, location, rating, photoUrl } = req.body;
+    const { id, houseName, price, location, rating } = req.body;
     const home = await Home.findById(id);
 
     if (!home) {
@@ -135,19 +150,45 @@ exports.postEditHome = async (req, res, next) => {
       return res.redirect("/host/host-home");
     }
 
+    // Update basic fields
     home.houseName = houseName;
     home.price = price;
     home.location = location;
     home.rating = rating;
-    home.photoUrl = photoUrl;
+
+    // If new photo is uploaded, delete old one and update
+    if (req.file) {
+      console.log('New photo uploaded:', req.file.filename);
+      
+      // Delete old photo file
+      if (home.photo) {
+        const oldPhotoPath = path.join(__dirname, '..', 'public', home.photo);
+        fs.unlink(oldPhotoPath, (err) => {
+          if (err) console.error("Error deleting old photo:", err);
+          else console.log('✅ Old photo deleted');
+        });
+      }
+      
+      // Update with new photo
+      home.photo = `/uploads/${req.file.filename}`;
+    }
     
     await home.save();
-    console.log('Home updated successfully:', id);
+    console.log('✅ Home updated successfully:', id);
 
     res.redirect("/host/host-home");
   } catch (err) {
-    console.error("Error updating home:", err);
-    res.status(500).send("Internal Server Error");
+    console.error("❌ Error updating home:", err);
+    
+    // Delete uploaded file if database update fails
+    if (req.file) {
+      const filePath = path.join(__dirname, '..', 'public', 'uploads', req.file.filename);
+      fs.unlink(filePath, (unlinkErr) => {
+        if (unlinkErr) console.error("Error deleting file:", unlinkErr);
+      });
+    }
+    
+    next(err);
   }
 };
 
@@ -173,12 +214,21 @@ exports.postDeleteHome = async (req, res, next) => {
       return res.redirect("/host/host-home");
     }
 
+    // Delete photo file from uploads folder
+    if (home.photo) {
+      const photoPath = path.join(__dirname, '..', 'public', home.photo);
+      fs.unlink(photoPath, (err) => {
+        if (err) console.error("❌ Error deleting photo file:", err);
+        else console.log('✅ Photo file deleted');
+      });
+    }
+
     await Home.findByIdAndDelete(homeId);
-    console.log('Home deleted successfully:', homeId);
+    console.log('✅ Home deleted successfully:', homeId);
     
     res.redirect("/host/host-home");
   } catch (err) {
-    console.error("Error deleting home:", err);
-    res.status(500).send("Internal Server Error");
+    console.error("❌ Error deleting home:", err);
+    next(err);
   }
 };

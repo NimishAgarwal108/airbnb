@@ -23,7 +23,7 @@
           <% registeredHomes.forEach(home => { %>
             <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transform hover:scale-105 transition duration-300 max-w-[220px] w-full">
               <img 
-                src="<%= home.photoUrl || 'https://via.placeholder.com/220x150?text=No+Image' %>" 
+                src="<%= home.photo || 'https://via.placeholder.com/220x150?text=No+Image' %>" 
                 alt="<%= home.houseName %>" 
                 class="w-full h-36 object-cover object-center"
                 loading="lazy"
