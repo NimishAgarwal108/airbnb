@@ -1,11 +1,9 @@
 const Favourite = require("../models/favourite");
 const Home = require("../models/home");
-const connectToDB = require("../utils/db");
 
 // Render index page (first page for guests)
 exports.getIndex = async (req, res, next) => {
   try {
-    await connectToDB();
     const registeredHomes = await Home.find();
     res.render("store/index", {
       registeredHomes,
@@ -23,7 +21,6 @@ exports.getIndex = async (req, res, next) => {
 // List all homes
 exports.getHomes = async (req, res, next) => {
   try {
-    await connectToDB();
     const registeredHomes = await Home.find();
     res.render("store/home-list", {
       registeredHomes,
@@ -51,7 +48,6 @@ exports.getBookings = (req, res, next) => {
 // Favourites list
 exports.getFavouriteList = async (req, res, next) => {
   try {
-    await connectToDB();
     const favourites = await Favourite.find().populate("homeId");
     const favouriteHomes = favourites.map(fav => fav.homeId);
     res.render("store/favourite-list", {
@@ -70,7 +66,6 @@ exports.getFavouriteList = async (req, res, next) => {
 // Home details page
 exports.getHomeDetails = async (req, res, next) => {
   try {
-    await connectToDB();
     const homeId = req.params.homeId;
     const home = await Home.findById(homeId);
     if (!home) return res.redirect("/homes");
@@ -91,7 +86,6 @@ exports.getHomeDetails = async (req, res, next) => {
 // Add to favourites
 exports.postAddToFavourites = async (req, res, next) => {
   try {
-    await connectToDB();
     const homeId = req.body.id;
     const existingFav = await Favourite.findOne({ homeId });
     if (!existingFav) {
@@ -108,7 +102,6 @@ exports.postAddToFavourites = async (req, res, next) => {
 // Remove from favourites
 exports.postDeleteFavourite = async (req, res, next) => {
   try {
-    await connectToDB();
     const homeId = req.params.homeId;
     await Favourite.findOneAndDelete({ homeId });
     res.redirect("/store/favourite-list");

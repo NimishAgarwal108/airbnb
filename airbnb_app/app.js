@@ -12,7 +12,7 @@ const storeRouter = require("./routes/storeRouter");
 const hostRouter = require("./routes/hostRouter");
 const authRouter = require("./routes/authRouter");
 const errorsController = require("./controllers/errors");
-const connectToDB = require("./utils/db"); // your db.js
+const connectToDB = require("./utils/db");
 const rootDir = require("./utils/pathUtil");
 
 const app = express();
@@ -35,20 +35,30 @@ const store = new MongoDBStore({
   collection: "sessions",
 });
 
+// Handle store errors
+store.on('error', function(error) {
+  console.error('Session store error:', error);
+});
+
 app.use(
   session({
     secret: SESSION_SECRET,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     store,
-    cookie: { maxAge: 1000 * 60 * 60 * 24 }, // 1 day
+    cookie: { 
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      httpOnly: true,
+      sameSite: 'lax'
+    },
   })
 );
 
 // Make session data available in templates
 app.use((req, res, next) => {
-  res.locals.isLoggedIn = req.session.isLoggedIn;
-  res.locals.user = req.session.user;
+  res.locals.isLoggedIn = req.session.isLoggedIn || false;
+  res.locals.user = req.session.user || {};
   next();
 });
 
@@ -56,8 +66,11 @@ app.use((req, res, next) => {
 app.use(authRouter);
 app.use(storeRouter);
 app.use("/host", (req, res, next) => {
-  if (req.session.isLoggedIn) next();
-  else res.redirect("/login");
+  if (req.session.isLoggedIn) {
+    next();
+  } else {
+    res.redirect("/login");
+  }
 });
 app.use("/host", hostRouter);
 
@@ -65,30 +78,37 @@ app.use("/host", hostRouter);
 app.use(errorsController.pageNotFound);
 
 // =====================
+// DATABASE CONNECTION
+// =====================
+// Initialize DB connection (uses cached connection from db.js)
+const initializeDB = async () => {
+  try {
+    await connectToDB(DB_PATH);
+    console.log("✅ Connected to MongoDB");
+  } catch (err) {
+    console.error("❌ DB connection error:", err);
+  }
+};
+
+// =====================
 // LOCALHOST SERVER
 // =====================
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3003;
 
-  connectToDB(DB_PATH)
+  initializeDB()
     .then(() => {
-      console.log("Connected to Mongo");
       app.listen(PORT, () =>
-        console.log(`Server running on http://localhost:${PORT}`)
+        console.log(`🚀 Server running on http://localhost:${PORT}`)
       );
     })
-    .catch((err) => console.log("Error connecting to Mongo:", err));
+    .catch((err) => console.log("Error starting server:", err));
+} else {
+  // Connect to DB when deployed to Vercel (connection is cached)
+  initializeDB();
 }
 
 // =====================
 // EXPORT FOR VERCEL
 // =====================
-module.exports = async (req, res) => {
-  try {
-    await connectToDB(DB_PATH); // ✅ ensure DB is connected
-    app(req, res);
-  } catch (err) {
-    console.error("DB connection error:", err);
-    res.status(500).send("Internal Server Error");
-  }
-};
+module.exports = app;

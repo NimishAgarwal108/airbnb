@@ -1,5 +1,4 @@
 const Home = require("../models/home");
-const connectToDB = require("../utils/db");
 
 // Render add home form
 exports.getAddHome = (req, res, next) => {
@@ -15,8 +14,7 @@ exports.getAddHome = (req, res, next) => {
 // Render host's home list
 exports.getHostHome = async (req, res, next) => {
   try {
-    await connectToDB();
-    const registeredHomes = await Home.find({ user: req.session.user._id }); // only show homes added by this host
+    const registeredHomes = await Home.find({ user: req.session.user._id });
     res.render("host/host-home", {
       registeredHomes,
       pageTitle: "Host Home List",
@@ -33,7 +31,6 @@ exports.getHostHome = async (req, res, next) => {
 // Add a new home
 exports.postAddHome = async (req, res, next) => {
   try {
-    await connectToDB();
     const { houseName, price, location, rating, photoUrl } = req.body;
     const home = new Home({
       houseName,
@@ -41,7 +38,7 @@ exports.postAddHome = async (req, res, next) => {
       location,
       rating,
       photoUrl,
-      user: req.session.user._id, // link home to host
+      user: req.session.user._id,
     });
     await home.save();
     res.redirect("/host/host-home");
@@ -54,7 +51,6 @@ exports.postAddHome = async (req, res, next) => {
 // Edit home page
 exports.getEditHome = async (req, res, next) => {
   try {
-    await connectToDB();
     const homeId = req.params.homeId;
     const editing = req.query.editing === "true";
 
@@ -78,7 +74,6 @@ exports.getEditHome = async (req, res, next) => {
 // Update home
 exports.postEditHome = async (req, res, next) => {
   try {
-    await connectToDB();
     const { id, houseName, price, location, rating, photoUrl } = req.body;
     const home = await Home.findById(id);
 
@@ -101,7 +96,6 @@ exports.postEditHome = async (req, res, next) => {
 // Delete home
 exports.postDeleteHome = async (req, res, next) => {
   try {
-    await connectToDB();
     const homeId = req.params.homeId;
     await Home.findByIdAndDelete(homeId);
     res.redirect("/host/host-home");
