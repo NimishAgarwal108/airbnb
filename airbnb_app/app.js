@@ -33,11 +33,20 @@ app.use(express.urlencoded({ extended: false }));
 const store = new MongoDBStore({
   uri: DB_PATH,
   collection: "sessions",
+  connectionOptions: {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }
 });
 
 // Handle store errors
 store.on('error', function(error) {
   console.error('Session store error:', error);
+});
+
+// Wait for store to connect
+store.on('connected', function() {
+  console.log('✅ Session store connected');
 });
 
 app.use(
@@ -50,13 +59,19 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24, // 1 day
       secure: process.env.NODE_ENV === "production", // HTTPS only in production
       httpOnly: true,
-      sameSite: 'lax'
+      sameSite: 'lax' // Use 'lax' for better compatibility
     },
+    proxy: true, // Trust proxy for Vercel
+    name: 'sessionId' // Custom session name
   })
 );
 
 // Make session data available in templates
 app.use((req, res, next) => {
+  console.log('Session ID:', req.sessionID);
+  console.log('Is Logged In:', req.session.isLoggedIn);
+  console.log('User:', req.session.user ? req.session.user.email : 'No user');
+  
   res.locals.isLoggedIn = req.session.isLoggedIn || false;
   res.locals.user = req.session.user || {};
   next();

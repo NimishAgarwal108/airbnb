@@ -139,6 +139,8 @@ exports.postSignup = [
 exports.postLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt for:', email);
+    
     const user = await User.findOne({ email });
 
     const errors = [];
@@ -160,18 +162,37 @@ exports.postLogin = async (req, res, next) => {
       });
     }
 
-    // Set session with callback to ensure it's saved before redirect
-    req.session.isLoggedIn = true;
-    req.session.user = user;
-
-    req.session.save((err) => {
+    // Regenerate session to prevent fixation attacks
+    req.session.regenerate((err) => {
       if (err) {
-        console.error("Session save error:", err);
+        console.error("Session regenerate error:", err);
         return next(err);
       }
 
-      console.log("✅ Session saved successfully, redirecting to home");
-      return res.redirect("/");
+      // Set session data
+      req.session.isLoggedIn = true;
+      req.session.user = {
+        _id: user._id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        userType: user.userType
+      };
+
+      // Save session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return next(err);
+        }
+
+        console.log("✅ Session saved successfully");
+        console.log("Session ID:", req.sessionID);
+        console.log("User Type:", user.userType);
+        console.log("Is Logged In:", req.session.isLoggedIn);
+        
+        return res.redirect("/");
+      });
     });
   } catch (err) {
     console.error("Login error:", err);
