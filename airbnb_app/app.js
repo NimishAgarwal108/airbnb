@@ -7,7 +7,8 @@ const express = require("express");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const multer = require("multer");
-const fs = require("fs");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 // Local Modules
 const storeRouter = require("./routes/storeRouter");
@@ -32,25 +33,22 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: false }));
 
 // =====================
-// MULTER CONFIGURATION
+// CLOUDINARY CONFIGURATION
 // =====================
 
-// Create uploads directory if it doesn't exist
-const uploadDir = path.join(__dirname, "public", "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("📁 Created uploads directory");
-}
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, 'home-' + uniqueSuffix + ext);
+// Configure Cloudinary storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'airbnb-homes',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+    transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
   }
 });
 
@@ -78,6 +76,7 @@ const upload = multer({
 
 // Make upload available globally
 app.locals.upload = upload;
+app.locals.cloudinary = cloudinary;
 
 // MongoDB session store
 const store = new MongoDBStore({
@@ -109,10 +108,10 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24, // 1 day
       secure: false, // Set to false for development
       httpOnly: true,
-      sameSite: 'lax' // Use 'lax' for better compatibility
+      sameSite: 'lax'
     },
-    proxy: true, // Trust proxy for Vercel
-    name: 'sessionId' // Custom session name
+    proxy: true,
+    name: 'sessionId'
   })
 );
 
@@ -160,7 +159,7 @@ app.use("/host", (req, res, next) => {
 
 app.use("/host", hostRouter);
 
-// 👇 MULTER ERROR HANDLING MIDDLEWARE (MUST BE BEFORE GENERAL ERROR HANDLER)
+// 👇 MULTER ERROR HANDLING MIDDLEWARE
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     console.error('\n=== MULTER ERROR ===');
@@ -193,7 +192,6 @@ app.use((err, req, res, next) => {
     });
   }
   
-  // If it's a file filter error
   if (err.message && err.message.includes('Only JPG, JPEG, and PNG')) {
     console.error('\n=== FILE TYPE ERROR ===');
     console.error('Error Message:', err.message);
@@ -211,7 +209,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// 👇 ERROR HANDLING MIDDLEWARE (MUST BE BEFORE 404)
+// 👇 ERROR HANDLING MIDDLEWARE
 app.use((err, req, res, next) => {
   console.error('\n=== ERROR CAUGHT ===');
   console.error('Time:', new Date().toISOString());
@@ -223,12 +221,10 @@ app.use((err, req, res, next) => {
   console.error('Session ID:', req.sessionID);
   console.error('==================\n');
   
-  // Check if headers already sent
   if (res.headersSent) {
     return next(err);
   }
   
-  // Render error page or send JSON for API requests
   if (req.accepts('html')) {
     res.status(500).render('error', {
       pageTitle: 'Error',
@@ -248,7 +244,7 @@ app.use((err, req, res, next) => {
   }
 });
 
-// 👇 404 HANDLER (MUST BE LAST)
+// 👇 404 HANDLER
 app.use(errorsController.pageNotFound);
 
 // =====================
@@ -260,7 +256,7 @@ const initializeDB = async () => {
     console.log("✅ Connected to MongoDB");
   } catch (err) {
     console.error("❌ DB connection error:", err);
-    throw err; // Re-throw to prevent server start without DB
+    throw err;
   }
 };
 
@@ -275,7 +271,7 @@ if (process.env.NODE_ENV !== "production") {
       app.listen(PORT, () => {
         console.log(`\n${'='.repeat(50)}`);
         console.log(`🚀 Server running on http://localhost:${PORT}`);
-        console.log(`📁 Uploads directory: ${uploadDir}`);
+        console.log(`☁️  Using Cloudinary for file storage`);
         console.log(`📱 Test mobile view: Press F12 → Toggle device toolbar`);
         console.log(`${'='.repeat(50)}\n`);
       });
@@ -285,11 +281,7 @@ if (process.env.NODE_ENV !== "production") {
       process.exit(1);
     });
 } else {
-  // Connect to DB when deployed to Vercel (connection is cached)
   initializeDB();
 }
 
-// =====================
-// EXPORT FOR VERCEL
-// =====================
 module.exports = app;

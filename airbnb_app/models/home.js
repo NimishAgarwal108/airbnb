@@ -11,7 +11,12 @@ const homeSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 
     required: true 
-  }
+  },
+  
+photoPublicId: {
+  type: String,
+  required: false
+}
 });
 
 homeSchema.pre('findOneAndDelete', async function(next) {

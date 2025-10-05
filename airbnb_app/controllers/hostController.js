@@ -1,10 +1,7 @@
 const Home = require("../models/home");
-const fs = require("fs");
-const path = require("path");
 
 // Render add home form
 exports.getAddHome = (req, res, next) => {
-  // 👇 Add authentication check
   if (!req.session.isLoggedIn || !req.session.user) {
     return res.redirect('/login');
   }
@@ -21,7 +18,6 @@ exports.getAddHome = (req, res, next) => {
 // Render host's home list
 exports.getHostHome = async (req, res, next) => {
   try {
-    // 👇 Add authentication check
     if (!req.session.isLoggedIn || !req.session.user) {
       console.log('User not logged in, redirecting to login');
       return res.redirect('/login');
@@ -49,18 +45,18 @@ exports.getHostHome = async (req, res, next) => {
 // Add a new home
 exports.postAddHome = async (req, res, next) => {
   try {
-    // 👇 Add authentication check
     if (!req.session.isLoggedIn || !req.session.user) {
       return res.redirect('/login');
     }
 
     const { houseName, price, location, rating } = req.body;
     
-    // Get photo path from uploaded file
-    const photoUrl = `/uploads/${req.file.filename}`;
+    // Get Cloudinary URL from uploaded file
+    const photoUrl = req.file.path; // Cloudinary returns full URL in path
+    const photoPublicId = req.file.filename; // Cloudinary public_id
     
     console.log('Adding home for user:', req.session.user._id);
-    console.log('Uploaded photo:', photoUrl);
+    console.log('Uploaded photo URL:', photoUrl);
     
     const home = new Home({
       houseName,
@@ -68,6 +64,7 @@ exports.postAddHome = async (req, res, next) => {
       location,
       rating,
       photo: photoUrl,
+      photoPublicId: photoPublicId, // Store for deletion later
       user: req.session.user._id,
     });
     
@@ -78,11 +75,11 @@ exports.postAddHome = async (req, res, next) => {
   } catch (err) {
     console.error("❌ Error adding home:", err);
     
-    // Delete uploaded file if database save fails
-    if (req.file) {
-      const filePath = path.join(__dirname, '..', 'public', 'uploads', req.file.filename);
-      fs.unlink(filePath, (unlinkErr) => {
-        if (unlinkErr) console.error("Error deleting file:", unlinkErr);
+    // Delete uploaded file from Cloudinary if database save fails
+    if (req.file && req.file.filename) {
+      const cloudinary = req.app.locals.cloudinary;
+      cloudinary.uploader.destroy(req.file.filename, (error) => {
+        if (error) console.error("Error deleting from Cloudinary:", error);
       });
     }
     
@@ -93,13 +90,11 @@ exports.postAddHome = async (req, res, next) => {
 // Edit home page
 exports.getEditHome = async (req, res, next) => {
   try {
-    // 👇 Add authentication check
     if (!req.session.isLoggedIn || !req.session.user) {
       return res.redirect('/login');
     }
 
     const homeId = req.params.homeId;
-    const editing = req.query.editing === "true";
 
     const home = await Home.findById(homeId);
     
@@ -108,7 +103,6 @@ exports.getEditHome = async (req, res, next) => {
       return res.redirect("/host/host-home");
     }
 
-    // 👇 Security: Check if this home belongs to the logged-in user
     if (home.user.toString() !== req.session.user._id.toString()) {
       console.log('Unauthorized access attempt');
       return res.redirect("/host/host-home");
@@ -131,7 +125,6 @@ exports.getEditHome = async (req, res, next) => {
 // Update home
 exports.postEditHome = async (req, res, next) => {
   try {
-    // 👇 Add authentication check
     if (!req.session.isLoggedIn || !req.session.user) {
       return res.redirect('/login');
     }
@@ -144,33 +137,32 @@ exports.postEditHome = async (req, res, next) => {
       return res.redirect("/host/host-home");
     }
 
-    // 👇 Security: Check if this home belongs to the logged-in user
     if (home.user.toString() !== req.session.user._id.toString()) {
       console.log('Unauthorized edit attempt');
       return res.redirect("/host/host-home");
     }
 
-    // Update basic fields
     home.houseName = houseName;
     home.price = price;
     home.location = location;
     home.rating = rating;
 
-    // If new photo is uploaded, delete old one and update
+    // If new photo is uploaded
     if (req.file) {
       console.log('New photo uploaded:', req.file.filename);
       
-      // Delete old photo file
-      if (home.photo) {
-        const oldPhotoPath = path.join(__dirname, '..', 'public', home.photo);
-        fs.unlink(oldPhotoPath, (err) => {
-          if (err) console.error("Error deleting old photo:", err);
-          else console.log('✅ Old photo deleted');
+      // Delete old photo from Cloudinary
+      if (home.photoPublicId) {
+        const cloudinary = req.app.locals.cloudinary;
+        cloudinary.uploader.destroy(home.photoPublicId, (error) => {
+          if (error) console.error("Error deleting old photo:", error);
+          else console.log('✅ Old photo deleted from Cloudinary');
         });
       }
       
       // Update with new photo
-      home.photo = `/uploads/${req.file.filename}`;
+      home.photo = req.file.path;
+      home.photoPublicId = req.file.filename;
     }
     
     await home.save();
@@ -180,11 +172,11 @@ exports.postEditHome = async (req, res, next) => {
   } catch (err) {
     console.error("❌ Error updating home:", err);
     
-    // Delete uploaded file if database update fails
-    if (req.file) {
-      const filePath = path.join(__dirname, '..', 'public', 'uploads', req.file.filename);
-      fs.unlink(filePath, (unlinkErr) => {
-        if (unlinkErr) console.error("Error deleting file:", unlinkErr);
+    // Delete uploaded file from Cloudinary if update fails
+    if (req.file && req.file.filename) {
+      const cloudinary = req.app.locals.cloudinary;
+      cloudinary.uploader.destroy(req.file.filename, (error) => {
+        if (error) console.error("Error deleting from Cloudinary:", error);
       });
     }
     
@@ -195,7 +187,6 @@ exports.postEditHome = async (req, res, next) => {
 // Delete home
 exports.postDeleteHome = async (req, res, next) => {
   try {
-    // 👇 Add authentication check
     if (!req.session.isLoggedIn || !req.session.user) {
       return res.redirect('/login');
     }
@@ -208,18 +199,17 @@ exports.postDeleteHome = async (req, res, next) => {
       return res.redirect("/host/host-home");
     }
 
-    // 👇 Security: Check if this home belongs to the logged-in user
     if (home.user.toString() !== req.session.user._id.toString()) {
       console.log('Unauthorized delete attempt');
       return res.redirect("/host/host-home");
     }
 
-    // Delete photo file from uploads folder
-    if (home.photo) {
-      const photoPath = path.join(__dirname, '..', 'public', home.photo);
-      fs.unlink(photoPath, (err) => {
-        if (err) console.error("❌ Error deleting photo file:", err);
-        else console.log('✅ Photo file deleted');
+    // Delete photo from Cloudinary
+    if (home.photoPublicId) {
+      const cloudinary = req.app.locals.cloudinary;
+      cloudinary.uploader.destroy(home.photoPublicId, (error) => {
+        if (error) console.error("❌ Error deleting photo from Cloudinary:", error);
+        else console.log('✅ Photo deleted from Cloudinary');
       });
     }
 
