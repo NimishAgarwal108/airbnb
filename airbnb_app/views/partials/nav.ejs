@@ -74,11 +74,11 @@
           <% if (isLoggedIn) { %>
             <% if (user && user.userType === 'guest') { %>
               <li><a href="/homes" class="<%= currentPage === 'Home' ? 'bg-red-600 font-medium' : 'hover:bg-red-400' %> py-2 px-3 rounded-lg flex items-center">Homes</a></li>
-              <li><a href="/favourites" class="<%= currentPage === 'favourites' ? 'bg-red-600 font-medium' : 'hover:bg-red-400' %> py-2 px-3 rounded-lg flex items-center">Favourites</a></li>
-              <li><a href="/bookings" class="<%= currentPage === 'bookings' ? 'bg-red-600 font-medium' : 'hover:bg-red-400' %> py-2 px-3 rounded-lg flex items-center">Bookings</a></li>
+              <li><a href="/store/favourite-list" class="<%= currentPage === 'favourites' ? 'bg-red-600 font-medium' : 'hover:bg-red-400' %> py-2 px-3 rounded-lg flex items-center">Favourites</a></li>
+              <li><a href="/store/bookings" class="<%= currentPage === 'bookings' ? 'bg-red-600 font-medium' : 'hover:bg-red-400' %> py-2 px-3 rounded-lg flex items-center">Bookings</a></li>
             <% } else { %>
-              <li><a href="/host/host-home-list" class="<%= currentPage === 'host-homes' ? 'bg-red-600 font-medium' : 'hover:bg-red-400' %> py-2 px-3 rounded-lg flex items-center">Host Homes</a></li>
-              <li><a href="/host/add-home" class="<%= currentPage === 'addHome' ? 'bg-red-600 font-medium' : 'hover:bg-red-400' %> py-2 px-3 rounded-lg flex items-center">Add Home</a></li>
+              <li><a href="/host/host-home" class="<%= currentPage === 'host-home' ? 'bg-red-600 font-medium' : 'hover:bg-red-400' %> py-2 px-3 rounded-lg flex items-center">Host Homes</a></li>
+              <li><a href="/host/add-home" class="<%= currentPage === 'add-home' ? 'bg-red-600 font-medium' : 'hover:bg-red-400' %> py-2 px-3 rounded-lg flex items-center">Add Home</a></li>
             <% } %>
             <li class="pt-2 border-t border-red-400 mt-2">
               <form action="/logout" method="POST">

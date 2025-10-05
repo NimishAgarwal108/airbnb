@@ -57,7 +57,7 @@ app.use(
     store,
     cookie: { 
       maxAge: 1000 * 60 * 60 * 24, // 1 day
-      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      secure: false, // Set to false for development
       httpOnly: true,
       sameSite: 'lax' // Use 'lax' for better compatibility
     },
@@ -66,11 +66,21 @@ app.use(
   })
 );
 
-// Make session data available in templates
+// 👇 ENHANCED DEBUG MIDDLEWARE
 app.use((req, res, next) => {
+  const isMobile = req.get('user-agent')?.includes('Mobile') || false;
+  
+  console.log('\n=== REQUEST DEBUG ===');
+  console.log('Time:', new Date().toISOString());
+  console.log('Path:', req.path);
+  console.log('Method:', req.method);
+  console.log('User-Agent:', req.get('user-agent')?.substring(0, 50) + '...');
+  console.log('Is Mobile:', isMobile);
   console.log('Session ID:', req.sessionID);
   console.log('Is Logged In:', req.session.isLoggedIn);
   console.log('User:', req.session.user ? req.session.user.email : 'No user');
+  console.log('Has Cookie:', !!req.headers.cookie);
+  console.log('====================\n');
   
   res.locals.isLoggedIn = req.session.isLoggedIn || false;
   res.locals.user = req.session.user || {};
@@ -80,28 +90,76 @@ app.use((req, res, next) => {
 // Routes
 app.use(authRouter);
 app.use(storeRouter);
+
+// 👇 ENHANCED HOST PROTECTION MIDDLEWARE
 app.use("/host", (req, res, next) => {
-  if (req.session.isLoggedIn) {
+  console.log('\n🔒 Host Route Protection Check');
+  console.log('Session exists:', !!req.session);
+  console.log('Is Logged In:', req.session.isLoggedIn);
+  console.log('User exists:', !!req.session.user);
+  
+  if (req.session.isLoggedIn && req.session.user) {
+    console.log('✅ Access granted to:', req.session.user.email);
     next();
   } else {
+    console.log('❌ Access denied - Redirecting to login');
+    console.log('Target path was:', req.originalUrl);
     res.redirect("/login");
   }
 });
+
 app.use("/host", hostRouter);
 
-// 404 handler
+// 👇 ERROR HANDLING MIDDLEWARE (MUST BE BEFORE 404)
+app.use((err, req, res, next) => {
+  console.error('\n=== ERROR CAUGHT ===');
+  console.error('Time:', new Date().toISOString());
+  console.error('Error Message:', err.message);
+  console.error('Error Stack:', err.stack);
+  console.error('Path:', req.path);
+  console.error('Method:', req.method);
+  console.error('User:', req.session?.user?.email || 'No user');
+  console.error('Session ID:', req.sessionID);
+  console.error('==================\n');
+  
+  // Check if headers already sent
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  // Render error page or send JSON for API requests
+  if (req.accepts('html')) {
+    res.status(500).render('error', {
+      pageTitle: 'Error',
+      currentPage: 'error',
+      error: process.env.NODE_ENV === 'production' 
+        ? 'Something went wrong. Please try again.' 
+        : err.message,
+      isLoggedIn: req.session?.isLoggedIn || false,
+      user: req.session?.user || {}
+    });
+  } else {
+    res.status(500).json({ 
+      error: process.env.NODE_ENV === 'production' 
+        ? 'Internal Server Error' 
+        : err.message 
+    });
+  }
+});
+
+// 👇 404 HANDLER (MUST BE LAST)
 app.use(errorsController.pageNotFound);
 
 // =====================
 // DATABASE CONNECTION
 // =====================
-// Initialize DB connection (uses cached connection from db.js)
 const initializeDB = async () => {
   try {
     await connectToDB(DB_PATH);
     console.log("✅ Connected to MongoDB");
   } catch (err) {
     console.error("❌ DB connection error:", err);
+    throw err; // Re-throw to prevent server start without DB
   }
 };
 
@@ -113,11 +171,17 @@ if (process.env.NODE_ENV !== "production") {
 
   initializeDB()
     .then(() => {
-      app.listen(PORT, () =>
-        console.log(`🚀 Server running on http://localhost:${PORT}`)
-      );
+      app.listen(PORT, () => {
+        console.log(`\n${'='.repeat(50)}`);
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        console.log(`📱 Test mobile view: Press F12 → Toggle device toolbar`);
+        console.log(`${'='.repeat(50)}\n`);
+      });
     })
-    .catch((err) => console.log("Error starting server:", err));
+    .catch((err) => {
+      console.error("❌ Failed to start server:", err);
+      process.exit(1);
+    });
 } else {
   // Connect to DB when deployed to Vercel (connection is cached)
   initializeDB();

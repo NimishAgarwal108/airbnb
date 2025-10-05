@@ -1,0 +1,89 @@
+<!-- Loading Spinner -->
+<div id="loading-overlay" class="loading-overlay">
+  <div>
+    <div class="spinner"></div>
+    <div class="loading-text">Loading...</div>
+  </div>
+</div>
+
+<script>
+  // Loading spinner functionality
+  (function() {
+    const overlay = document.getElementById('loading-overlay');
+    
+    // Show spinner
+    window.showSpinner = function(message = 'Loading...') {
+      document.querySelector('.loading-text').textContent = message;
+      overlay.classList.add('active');
+      document.body.classList.add('loading');
+    };
+    
+    // Hide spinner
+    window.hideSpinner = function() {
+      overlay.classList.remove('active');
+      document.body.classList.remove('loading');
+    };
+    
+    // Show spinner on all link clicks (page navigation)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.href && !link.href.startsWith('javascript:')) {
+        const url = new URL(link.href);
+        // Only show for same-origin navigation
+        if (url.origin === window.location.origin) {
+          showSpinner('Loading page...');
+        }
+      }
+    });
+    
+    // Show spinner on form submissions
+    document.addEventListener('submit', function(e) {
+      const form = e.target;
+      const action = form.action;
+      
+      // Determine message based on form action
+      let message = 'Processing...';
+      if (action.includes('login')) {
+        message = 'Logging in...';
+      } else if (action.includes('signup')) {
+        message = 'Creating account...';
+      } else if (action.includes('add-home')) {
+        message = 'Adding home...';
+      } else if (action.includes('edit-home')) {
+        message = 'Updating home...';
+      } else if (action.includes('delete')) {
+        message = 'Deleting...';
+      } else if (action.includes('favourite')) {
+        message = 'Updating favourites...';
+      }
+      
+      showSpinner(message);
+    });
+    
+    // Hide spinner when page loads
+    window.addEventListener('load', function() {
+      hideSpinner();
+    });
+    
+    // Hide spinner if navigation is cancelled (back button, etc)
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) {
+        hideSpinner();
+      }
+    });
+    
+    // Safety timeout - hide spinner after 10 seconds
+    let spinnerTimeout;
+    window.showSpinner = function(message = 'Loading...') {
+      clearTimeout(spinnerTimeout);
+      document.querySelector('.loading-text').textContent = message;
+      overlay.classList.add('active');
+      document.body.classList.add('loading');
+      
+      // Auto-hide after 10 seconds as safety measure
+      spinnerTimeout = setTimeout(function() {
+        hideSpinner();
+      }, 10000);
+    };
+  })();
+</script>
